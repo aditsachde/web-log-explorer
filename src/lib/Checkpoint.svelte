@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getContext, onMount } from "svelte";
-  import { getCheckpoint, type Checkpoint } from "$lib/log";
+  import { getCheckpoint, type Checkpoint } from "$lib/ctlog";
 
   const logUrl: string = getContext("log_url");
 

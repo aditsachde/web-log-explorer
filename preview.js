@@ -2,10 +2,20 @@ import select from "@inquirer/select";
 import { exec } from "child_process";
 import http from "http";
 import { stderr, stdout } from "process";
+import path from "path";
+import fs from "fs";
 
 const logUrl = await select({
   message: "Select a log",
   choices: [
+    {
+      name: "Andxor TLog",
+      value: "https://tlog.andxor.it/",
+    },
+    {
+      name: "Itko CT Log 2025",
+      value: "https://ct2025.itko.dev/",
+    },
     {
       name: "Armored Witness Firmware Prod",
       value:
@@ -30,25 +40,39 @@ const logUrl = await select({
 // Create an HTTP server
 const server = http.createServer(async (req, res) => {
   try {
-    // Forward the request to the target URL using the fetch API
-    const targetResponse = await fetch(logUrl + req.url, {
-      method: req.method,
-      headers: req.headers,
-    });
+    if (req.url === "/") {
+      // Serve ./build/index.html for the root path
+      const filePath = path.join("./", "build", "index.html");
+      const content = fs.readFileSync(filePath);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/html");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.end(content);
+    } else {
+      // Forward the request to the target URL using the fetch API
+      const targetResponse = await fetch(logUrl + req.url, {
+        method: req.method,
+        headers: req.headers,
+      });
 
-    // Get the response body as text
-    const body = await targetResponse.text();
+      // Get the response body as text
+      const innerbody = await targetResponse.arrayBuffer();
+      const body = new Uint8Array(innerbody);
 
-    // Set the response headers
-    res.statusCode = targetResponse.status;
-    res.setHeader(
-      "Content-Type",
-      targetResponse.headers.get("Content-Type") || "text/plain"
-    );
-    res.setHeader("Access-Control-Allow-Origin", "*");
+      // Set the response headers
+      res.statusCode = targetResponse.status;
+      res.setHeader(
+        "Content-Type",
+        targetResponse.headers.get("Content-Type") || "text/plain"
+      );
+      let lastModified = targetResponse.headers.get("Last-Modified");
+      if (lastModified)
+        res.setHeader("Last-Modified", lastModified );
+      res.setHeader("Access-Control-Allow-Origin", "*");
 
-    // Send the response body
-    res.end(body);
+      // Send the response body
+      res.end(body);
+    }
   } catch (error) {
     // Handle any errors that occur during the request
     res.statusCode = 500;
